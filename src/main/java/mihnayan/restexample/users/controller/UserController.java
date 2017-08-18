@@ -1,6 +1,8 @@
 package mihnayan.restexample.users.controller;
 
+import mihnayan.restexample.users.dao.UserRepository;
 import mihnayan.restexample.users.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -15,6 +17,7 @@ import java.util.List;
 @RequestMapping("/user")
 public class UserController {
 
+
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public List<User> getAllUsers() {
         return null;
@@ -22,12 +25,7 @@ public class UserController {
 
     @RequestMapping(value = "{id}/get", method = RequestMethod.GET)
     public User getUser(@PathVariable("id") Long id) {
-        User user = new User();
-        user.setId(id);
-        user.setName("Вася");
-        user.setLogin("vasa");
-        user.setPassword("123123");
-        return user;
+        return getUser(id);
     }
 
     @RequestMapping(value = "{id}/delete", method = RequestMethod.DELETE)
@@ -37,11 +35,19 @@ public class UserController {
 
     @RequestMapping(value = "/add", method = RequestMethod.PUT)
     public void addUser(User user) {
-
     }
 
     @RequestMapping(value = "{id}/edit", method = RequestMethod.POST)
     public void editUser(User user) {
 
+    }
+
+    private User getUser(long id) {
+        User user = new User();
+        user.setId(id);
+        user.setName("Вася");
+        user.setLogin("vasa");
+        user.setPassword("123123");
+        return user;
     }
 }

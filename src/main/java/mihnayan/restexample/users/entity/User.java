@@ -1,13 +1,26 @@
 package mihnayan.restexample.users.entity;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+
 /**
  * Information about user
  */
+@Entity
+@Table(name="users")
 public class User {
 
+    @Id
     private long id;
+
     private String name;
+
+    @NotNull
     private String login;
+
+    @NotNull
     private String password;
 
     public long getId() {
