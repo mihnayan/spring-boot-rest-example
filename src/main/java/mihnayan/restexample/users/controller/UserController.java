@@ -3,11 +3,11 @@ package mihnayan.restexample.users.controller;
 import mihnayan.restexample.users.dao.UserRepository;
 import mihnayan.restexample.users.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 /**
@@ -17,6 +17,12 @@ import java.util.List;
 @RequestMapping("/user")
 public class UserController {
 
+    private final UserRepository userRepository;
+
+    @Autowired
+    UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public List<User> getAllUsers() {
@@ -25,7 +31,7 @@ public class UserController {
 
     @RequestMapping(value = "{id}/get", method = RequestMethod.GET)
     public User getUser(@PathVariable("id") Long id) {
-        return getUser(id);
+        return generateUser(id);
     }
 
     @RequestMapping(value = "{id}/delete", method = RequestMethod.DELETE)
@@ -34,7 +40,12 @@ public class UserController {
     }
 
     @RequestMapping(value = "/add", method = RequestMethod.PUT)
-    public void addUser(User user) {
+    public ResponseEntity<?> addUser(@RequestBody User user) {
+        userRepository.save(user);
+        URI locatiton = ServletUriComponentsBuilder.fromCurrentServletMapping()
+                .path("/user/" + user.getId())
+                .build().toUri();
+        return ResponseEntity.created(locatiton).build();
     }
 
     @RequestMapping(value = "{id}/edit", method = RequestMethod.POST)
@@ -42,7 +53,7 @@ public class UserController {
 
     }
 
-    private User getUser(long id) {
+    private User generateUser(long id) {
         User user = new User();
         user.setId(id);
         user.setName("Вася");

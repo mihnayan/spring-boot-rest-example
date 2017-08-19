@@ -1,9 +1,7 @@
-package mihnayan;
+package mihnayan.restexample;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import javax.sql.DataSource;
 
 /**
  * REST service for manipulation with users
