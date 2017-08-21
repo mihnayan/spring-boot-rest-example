@@ -19,12 +19,12 @@ import javax.json.JsonObject;
 
 import java.nio.charset.Charset;
 
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 @RunWith(SpringRunner.class)
@@ -35,6 +35,7 @@ public class UserControllerTest {
     private MediaType contentType = new MediaType(MediaType.APPLICATION_JSON.getType(),
             MediaType.APPLICATION_JSON.getSubtype(), Charset.forName("utf8"));
     private MockMvc mockMvc;
+    private User testUser;
 
     @Autowired
     private UserRepository userRepository;
@@ -46,6 +47,7 @@ public class UserControllerTest {
     public void setUp() {
         this.mockMvc = webAppContextSetup(webApplicationContext).build();
         this.userRepository.deleteAllInBatch();
+        this.testUser = userRepository.save(generateUser());
     }
 
     public void userTest() {
@@ -54,6 +56,17 @@ public class UserControllerTest {
         User user = this.userRepository.getUserById(userId);
         assertNotNull(user);
         assertEquals("Вася", user.getName());
+    }
+
+    @Test
+    public void getUserTest() throws Exception {
+        mockMvc.perform(get("/user/" + testUser.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$.id", is(testUser.getId().intValue())))
+                .andExpect(jsonPath("$.name", is(testUser.getName())))
+                .andExpect(jsonPath("$.login", is(testUser.getLogin())))
+                .andExpect(jsonPath("$.password", is(testUser.getPassword())));
     }
 
     @Test

@@ -29,9 +29,9 @@ public class UserController {
         return null;
     }
 
-    @RequestMapping(value = "{id}/get", method = RequestMethod.GET)
+    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public User getUser(@PathVariable("id") Long id) {
-        return generateUser(id);
+        return this.userRepository.getUserById(id);
     }
 
     @RequestMapping(value = "{id}/delete", method = RequestMethod.DELETE)
