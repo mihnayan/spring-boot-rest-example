@@ -18,6 +18,10 @@ import javax.json.Json;
 import javax.json.JsonObject;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
@@ -36,6 +40,8 @@ public class UserControllerTest {
             MediaType.APPLICATION_JSON.getSubtype(), Charset.forName("utf8"));
     private MockMvc mockMvc;
     private User testUser;
+    private int testUserPosition;
+    private List<User> testUsers;
 
     @Autowired
     private UserRepository userRepository;
@@ -47,15 +53,30 @@ public class UserControllerTest {
     public void setUp() {
         this.mockMvc = webAppContextSetup(webApplicationContext).build();
         this.userRepository.deleteAllInBatch();
-        this.testUser = userRepository.save(generateUser());
+
+        int size = (int) Math.round(Math.random()*1_000);
+        this.testUsers = new ArrayList<>(size);
+        AtomicLong idGenerator = new AtomicLong();
+        for (int i = 0; i < size; i++) {
+            User user = generateUser(idGenerator.incrementAndGet());
+            this.testUsers.add(user);
+            this.userRepository.save(user);
+        }
+        this.testUserPosition = (int) Math.round(Math.random()*size);
+        this.testUser = testUsers.get(testUserPosition);
     }
 
-    public void userTest() {
-        long userId = Math.round(Math.random() * 1_000_000);
-        this.userRepository.save(generateUser());
-        User user = this.userRepository.getUserById(userId);
-        assertNotNull(user);
-        assertEquals("Вася", user.getName());
+    @Test
+    public void getAllUsersTest() throws Exception {
+        String expr = "$[" + testUserPosition + "]";
+        mockMvc.perform(get("/user/list"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$", hasSize(testUsers.size())))
+                .andExpect((jsonPath(expr + ".id", is(testUser.getId().intValue()))))
+                .andExpect(jsonPath(expr + ".name", is(testUser.getName())))
+                .andExpect(jsonPath(expr + ".login", is(testUser.getLogin())))
+                .andExpect(jsonPath(expr + ".password", is(testUser.getPassword())));
     }
 
     @Test
@@ -79,13 +100,18 @@ public class UserControllerTest {
                 .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
     }
 
-    private User generateUser() {
+    private User generateUser(long id) {
         User user = new User();
-        user.setId(Math.round(Math.random() * 1_000_000));
+        user.setId(id);
         user.setName("Вася");
         user.setLogin("vasa");
         user.setPassword("123123");
         return user;
+    }
+
+    private User generateUser() {
+        long id = Math.round(Math.random()*1_000_000);
+        return generateUser(id);
     }
 
     private String userToJson(User user) {

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -25,8 +26,8 @@ public class UserController {
     }
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
-    public List<User> getAllUsers() {
-        return null;
+    public Collection<User> getAllUsers() {
+        return this.userRepository.findAll();
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
@@ -53,12 +54,4 @@ public class UserController {
 
     }
 
-    private User generateUser(long id) {
-        User user = new User();
-        user.setId(id);
-        user.setName("Вася");
-        user.setLogin("vasa");
-        user.setPassword("123123");
-        return user;
-    }
 }
