@@ -3,6 +3,7 @@ package mihnayan.restexample.users.controller;
 import mihnayan.restexample.users.dao.UserRepository;
 import mihnayan.restexample.users.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -52,9 +53,15 @@ public class UserController {
         return ResponseEntity.created(locatiton).build();
     }
 
-    @RequestMapping(value = "{id}/edit", method = RequestMethod.POST)
-    public void editUser(User user) {
-
+    @RequestMapping(value = "/edit", method = RequestMethod.POST)
+    public ResponseEntity<?> editUser(@RequestBody User user) {
+        User editedUser = userRepository.getUserById(user.getId());
+        if (editedUser == null) return ResponseEntity.notFound().build();
+        if (user.equals(editedUser)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
+        }
+        userRepository.save(user);
+        return ResponseEntity.ok(user);
     }
 
 }

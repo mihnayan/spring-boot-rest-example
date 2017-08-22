@@ -113,6 +113,33 @@ public class UserControllerTest {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    public void editUserTest() throws Exception {
+        String editRequestStr = "/user/edit";
+        this.mockMvc.perform(post(editRequestStr)
+                .contentType(contentType)
+                .content(userToJson(testUser)))
+                .andExpect(status().isNotModified());
+
+        this.mockMvc.perform(post(editRequestStr)
+                .contentType(contentType)
+                .content(userToJson(generateUser())))
+                .andExpect(status().isNotFound());
+
+        testUser.setName("Petya");
+        testUser.setLogin("petrucho");
+        testUser.setPassword("P9tr_ch0");
+        this.mockMvc.perform(post(editRequestStr)
+                .contentType(contentType)
+                .content(userToJson(testUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$.id", is(testUser.getId().intValue())))
+                .andExpect(jsonPath("$.name", is(testUser.getName())))
+                .andExpect(jsonPath("$.login", is(testUser.getLogin())))
+                .andExpect(jsonPath("$.password", is(testUser.getPassword())));
+    }
+
     private User generateUser(long id) {
         User user = new User();
         user.setId(id);
