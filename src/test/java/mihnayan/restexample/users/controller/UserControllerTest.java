@@ -20,13 +20,9 @@ import javax.json.JsonObject;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
@@ -62,7 +58,7 @@ public class UserControllerTest {
             this.testUsers.add(user);
             this.userRepository.save(user);
         }
-        this.testUserPosition = (int) Math.round(Math.random()*size);
+        this.testUserPosition = Math.round(size / 3);
         this.testUser = testUsers.get(testUserPosition);
     }
 
@@ -98,6 +94,23 @@ public class UserControllerTest {
                 .content(userToJson(newUser)))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
+    }
+
+    @Test
+    public void deleteUserTest() throws Exception {
+        User delUser = generateUser();
+        this.userRepository.save(delUser);
+        String delRequestStr = "/user/" + delUser.getId() + "/delete";
+        this.mockMvc.perform(delete(delRequestStr))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$.id", is(delUser.getId().intValue())))
+                .andExpect(jsonPath("$.name", is(delUser.getName())))
+                .andExpect(jsonPath("$.login", is(delUser.getLogin())))
+                .andExpect(jsonPath("$.password", is(delUser.getPassword())));
+
+        this.mockMvc.perform(delete(delRequestStr))
+                .andExpect(status().isNoContent());
     }
 
     private User generateUser(long id) {

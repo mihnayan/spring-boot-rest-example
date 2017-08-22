@@ -9,7 +9,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Controller class for User
@@ -35,9 +34,13 @@ public class UserController {
         return this.userRepository.getUserById(id);
     }
 
-    @RequestMapping(value = "{id}/delete", method = RequestMethod.DELETE)
-    public void deleteUser() {
+    @RequestMapping(value = "/{id}/delete", method = RequestMethod.DELETE)
+    public ResponseEntity<?> deleteUser(@PathVariable("id") Long id) {
+        User user = userRepository.getUserById(id);
+        if (user == null) return ResponseEntity.noContent().build();
 
+        userRepository.delete(user.getId());
+        return ResponseEntity.ok(user);
     }
 
     @RequestMapping(value = "/add", method = RequestMethod.PUT)
