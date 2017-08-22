@@ -31,8 +31,10 @@ public class UserController {
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public User getUser(@PathVariable("id") Long id) {
-        return this.userRepository.getUserById(id);
+    public ResponseEntity<?> getUser(@PathVariable("id") Long id) {
+        User user = this.userRepository.getUserById(id);
+        if (user == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(user);
     }
 
     @RequestMapping(value = "/{id}/delete", method = RequestMethod.DELETE)

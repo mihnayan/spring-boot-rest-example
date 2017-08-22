@@ -77,6 +77,10 @@ public class UserControllerTest {
 
     @Test
     public void getUserTest() throws Exception {
+        User anyUser = generateUser();
+        mockMvc.perform(get("/user/" + anyUser.getId()))
+                .andExpect(status().isNotFound());
+
         mockMvc.perform(get("/user/" + testUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
