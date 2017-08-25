@@ -1,7 +1,9 @@
 package mihnayan.restexample.users.controller;
 
 import mihnayan.restexample.App;
+import mihnayan.restexample.users.dao.RoleRepository;
 import mihnayan.restexample.users.dao.UserRepository;
+import mihnayan.restexample.users.entity.Role;
 import mihnayan.restexample.users.entity.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,11 +17,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.json.Json;
+import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.*;
@@ -35,35 +40,46 @@ public class UserControllerTest {
     private MediaType contentType = new MediaType(MediaType.APPLICATION_JSON.getType(),
             MediaType.APPLICATION_JSON.getSubtype(), Charset.forName("utf8"));
     private MockMvc mockMvc;
-    private User testUser;
-    private int testUserPosition;
+
+    private AtomicLong idGenerator = new AtomicLong();
     private List<User> testUsers;
+    private List<Role> roles;
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private WebApplicationContext webApplicationContext;
+
+    public UserControllerTest() {
+        int size = 100 + (int) Math.round(Math.random()*1_000);
+        this.testUsers = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            User user = generateUser();
+            this.testUsers.add(user);
+        }
+    }
 
     @Before
     public void setUp() {
         this.mockMvc = webAppContextSetup(webApplicationContext).build();
         this.userRepository.deleteAllInBatch();
+        roleRepository.deleteAllInBatch();
 
-        int size = (int) Math.round(Math.random()*1_000);
-        this.testUsers = new ArrayList<>(size);
-        AtomicLong idGenerator = new AtomicLong();
-        for (int i = 0; i < size; i++) {
-            User user = generateUser(idGenerator.incrementAndGet());
-            this.testUsers.add(user);
-            this.userRepository.save(user);
-        }
-        this.testUserPosition = Math.round(size / 3);
-        this.testUser = testUsers.get(testUserPosition);
+        userRepository.save(this.testUsers);
+        
+        this.roles = generateRoles(7);
+        roleRepository.save(roles);
     }
 
     @Test
     public void getAllUsersTest() throws Exception {
+        int testUserPosition = Math.round(testUsers.size() / 3);
+        User testUser = testUsers.get(testUserPosition);
+
         String expr = "$[" + testUserPosition + "]";
         mockMvc.perform(get("/user/list"))
                 .andExpect(status().isOk())
@@ -81,6 +97,7 @@ public class UserControllerTest {
         mockMvc.perform(get("/user/" + anyUser.getId()))
                 .andExpect(status().isNotFound());
 
+        User testUser = testUsers.get(Math.round(testUsers.size() / 5));
         mockMvc.perform(get("/user/" + testUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
@@ -98,6 +115,31 @@ public class UserControllerTest {
                 .content(userToJson(newUser)))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
+    }
+
+    @Test
+    public void addUserWithRoles() throws Exception {
+        User newUser = generateUser();
+        this.mockMvc.perform(put("/user/add")
+                .contentType(contentType)
+                .content(userToJsonWithRoles(newUser)))
+                .andExpect(status().isCreated())
+                .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
+
+        List<Integer> expectedRoles = Arrays.asList(1,2,3);
+        mockMvc.perform(get("/user/" + newUser.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$.id", is(newUser.getId().intValue())))
+                .andExpect(jsonPath("$.name", is(newUser.getName())))
+                .andExpect(jsonPath("$.login", is(newUser.getLogin())))
+                .andExpect(jsonPath("$.password", is(newUser.getPassword())))
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.roles[0].id", isOneOf(1,2,3)))
+                .andExpect(jsonPath("$.roles[1].id", isOneOf(1,2,3)))
+                .andExpect(jsonPath("$.roles[2].id", isOneOf(1,2,3)))
+                .andExpect(jsonPath("$.roles[2].name",
+                        isOneOf("role #1","role #2","role #3")));
     }
 
     @Test
@@ -119,6 +161,7 @@ public class UserControllerTest {
 
     @Test
     public void editUserTest() throws Exception {
+        User testUser = testUsers.get(Math.round(testUsers.size() / 7));
         String editRequestStr = "/user/edit";
         this.mockMvc.perform(post(editRequestStr)
                 .contentType(contentType)
@@ -144,18 +187,13 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.password", is(testUser.getPassword())));
     }
 
-    private User generateUser(long id) {
+    private User generateUser() {
         User user = new User();
-        user.setId(id);
+        user.setId(idGenerator.incrementAndGet());
         user.setName("Вася");
         user.setLogin("vasa");
         user.setPassword("123123");
         return user;
-    }
-
-    private User generateUser() {
-        long id = Math.round(Math.random()*1_000_000);
-        return generateUser(id);
     }
 
     private String userToJson(User user) {
@@ -166,6 +204,28 @@ public class UserControllerTest {
                 .add("password", user.getPassword()).build();
 
         return json.toString();
+    }
+
+    private String userToJsonWithRoles(User user) {
+        JsonBuilderFactory factory = Json.createBuilderFactory(null);
+        JsonObject json = factory.createObjectBuilder()
+                .add("id", user.getId())
+                .add("name", user.getName())
+                .add("login", user.getLogin())
+                .add("password", user.getPassword())
+                .add("roles", factory.createArrayBuilder()
+                        .add(1).add(2).add(3).build())
+                .build();
+
+        return json.toString();
+    }
+
+    private List<Role> generateRoles(int rolesCount) {
+        List<Role> roles = new ArrayList<>(rolesCount);
+        for (int i = 1; i <= rolesCount; i++) {
+            roles.add(new Role(i, "role #" + i));
+        }
+        return roles;
     }
 
 }
