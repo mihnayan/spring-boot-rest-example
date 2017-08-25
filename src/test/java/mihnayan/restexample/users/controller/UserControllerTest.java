@@ -70,7 +70,7 @@ public class UserControllerTest {
         roleRepository.deleteAllInBatch();
 
         userRepository.save(this.testUsers);
-        
+
         this.roles = generateRoles(7);
         roleRepository.save(roles);
     }
@@ -122,11 +122,10 @@ public class UserControllerTest {
         User newUser = generateUser();
         this.mockMvc.perform(put("/user/add")
                 .contentType(contentType)
-                .content(userToJsonWithRoles(newUser)))
+                .content(userToJsonWithRoles(newUser, 1, 2, 3)))
                 .andExpect(status().isCreated())
                 .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
 
-        List<Integer> expectedRoles = Arrays.asList(1,2,3);
         mockMvc.perform(get("/user/" + newUser.getId()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(contentType))
@@ -187,6 +186,34 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.password", is(testUser.getPassword())));
     }
 
+    @Test
+    public void editUserWithRolesTest() throws Exception {
+        User newUser = generateUser();
+        this.mockMvc.perform(put("/user/add")
+                .contentType(contentType)
+                .content(userToJsonWithRoles(newUser, 1, 2, 3)))
+                .andExpect(status().isCreated())
+                .andExpect(redirectedUrl("http://localhost/user/" + newUser.getId()));
+
+        String editRequestStr = "/user/edit";
+        this.mockMvc.perform(post(editRequestStr)
+                .contentType(contentType)
+                .content(userToJsonWithRoles(newUser, 1, 2, 3)))
+                .andExpect(status().isNotModified());
+
+        this.mockMvc.perform(post(editRequestStr)
+                .contentType(contentType)
+                .content(userToJsonWithRoles(newUser, 5,6,7)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.roles[0].id", isOneOf(5,6,7)))
+                .andExpect(jsonPath("$.roles[1].id", isOneOf(5,6,7)))
+                .andExpect(jsonPath("$.roles[2].id", isOneOf(5,6,7)))
+                .andExpect(jsonPath("$.roles[2].name",
+                        isOneOf("role #5","role #6","role #7")));
+    }
+
     private User generateUser() {
         User user = new User();
         user.setId(idGenerator.incrementAndGet());
@@ -206,7 +233,7 @@ public class UserControllerTest {
         return json.toString();
     }
 
-    private String userToJsonWithRoles(User user) {
+    private String userToJsonWithRoles(User user, int role1, int role2, int role3) {
         JsonBuilderFactory factory = Json.createBuilderFactory(null);
         JsonObject json = factory.createObjectBuilder()
                 .add("id", user.getId())
@@ -214,7 +241,16 @@ public class UserControllerTest {
                 .add("login", user.getLogin())
                 .add("password", user.getPassword())
                 .add("roles", factory.createArrayBuilder()
-                        .add(1).add(2).add(3).build())
+                        .add(factory.createObjectBuilder()
+                                .add("id", role1)
+                                .add("name", "role #" + role1).build())
+                        .add(factory.createObjectBuilder()
+                                .add("id", role2)
+                                .add("name", "role #" + role2).build())
+                        .add(factory.createObjectBuilder()
+                                .add("id", role3)
+                                .add("name", "role #" + role3).build())
+                        .build())
                 .build();
 
         return json.toString();

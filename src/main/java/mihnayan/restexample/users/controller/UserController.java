@@ -59,7 +59,8 @@ public class UserController {
     public ResponseEntity<?> editUser(@RequestBody User user) {
         User editedUser = userRepository.getUserById(user.getId());
         if (editedUser == null) return ResponseEntity.notFound().build();
-        if (user.equals(editedUser)) {
+        if (editedUser.equals(user)
+                && editedUser.getRoles().equals(user.getRoles())) {
             return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
         }
         userRepository.save(user);
