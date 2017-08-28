@@ -22,15 +22,17 @@ import javax.json.JsonObject;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
+import static io.qala.datagen.RandomValue.*;
+import static io.qala.datagen.StringModifier.Impls.*;
+import static io.qala.datagen.RandomShortApi.*;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = App.class)
@@ -217,9 +219,10 @@ public class UserControllerTest {
     private User generateUser() {
         User user = new User();
         user.setId(idGenerator.incrementAndGet());
-        user.setName("Вася");
-        user.setLogin("vasa");
-        user.setPassword("123123");
+        user.setName(length(30).with(spaces()).alphanumeric());
+        user.setLogin(english(15));
+        user.setPassword(length(15).with(specialSymbol()).english());
+
         return user;
     }
 
